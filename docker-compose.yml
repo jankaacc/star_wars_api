@@ -1,0 +1,72 @@
+version: '3.9'
+
+services:
+  
+  nginx:
+    restart: unless-stopped
+    build: ./nginx
+    ports:
+      - "5000:80"
+    env_file:
+      - common.env
+      - local.env
+    volumes:
+      - 'starwars-backend-assets:/assets/backend'
+    depends_on:
+      - 'backend'
+  
+  db:
+    image: postgres:13.0-alpine
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=starwars
+    volumes:
+      - starwars-database:/var/lib/postgresql/data
+    ports:
+      - '6432:5432'
+
+  webapp:
+    restart: unless-stopped
+    build: ./webapp
+    env_file:
+      - common.env
+      - local.env
+    volumes:
+      - ./webapp:/app
+      - /app/node_modules
+    command: npm run dev
+
+  backend:
+    restart: unless-stopped
+    build:
+      context: ./backend
+      dockerfile: ./Dockerfile
+    ports:
+      - '5001:5000'
+    env_file:
+      - common.env
+      - local.env
+    environment:
+      DEBUG: 1
+    volumes:
+      - './backend:/app'
+      - 'starwars-backend-assets:/assets'
+    depends_on:
+      - db
+
+  swapi:
+    restart: unless-stopped
+    build:
+      context: ./swapi
+      dockerfile: ./Dockerfile
+    volumes:
+      - './swapi:/app'
+    ports:
+      - '5002:5000'
+
+volumes:
+  starwars-backend-assets:
+  starwars-database:
+
